@@ -190,6 +190,22 @@ def test_headful(testdir: Any) -> None:
     result.assert_outcomes(passed=1)
 
 
+def test_slowmo(testdir: Any) -> None:
+    testdir.makepyfile(
+        """
+        from time import monotonic
+        def test_slowmo(page):
+            start_time = monotonic()
+            page.goto("https://github.com")
+            page.type("input[name=user_email]","test@test.com")
+            end_time = monotonic()
+            assert end_time - start_time >= 13
+    """
+    )
+    result = testdir.runpytest("--browser", "chromium", "--slowmo", "1", "--headful")
+    result.assert_outcomes(passed=1)
+
+
 def test_invalid_browser_name(testdir: Any) -> None:
     testdir.makepyfile(
         """

@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from asyncio.events import AbstractEventLoop
 from typing import Any, Callable, Dict, Generator, List
-import asyncio
 
 import pytest
-
-from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
+from playwright.sync_api import (
+    Browser,
+    BrowserContext,
+    Page,
+    Playwright,
+    sync_playwright,
+)
 
 
 def pytest_generate_tests(metafunc: Any) -> None:
@@ -73,13 +76,6 @@ def pytest_runtest_setup(item: Any) -> None:
 
 
 @pytest.fixture(scope="session")
-def event_loop() -> Generator[AbstractEventLoop, None, None]:
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session")
 def browser_type_launch_args() -> Dict:
     return {}
 
@@ -90,7 +86,7 @@ def browser_context_args() -> Dict:
 
 
 @pytest.fixture(scope="session")
-def playwright() -> Generator[Any, None, None]:
+def playwright() -> Generator[Playwright, None, None]:
     pw = sync_playwright().start()
     yield pw
     pw.stop()
@@ -105,9 +101,12 @@ def launch_browser(
 ) -> Callable[..., Browser]:
     def launch(**kwargs: Dict[Any, Any]) -> Browser:
         headful_option = pytestconfig.getoption("--headful")
+        slowmo_option = pytestconfig.getoption("--slowmo")
         launch_options = {**browser_type_launch_args, **kwargs}
         if headful_option:
             launch_options["headless"] = False
+        if slowmo_option:
+            launch_options["slow_mo"] = slowmo_option * 1000  # convert to second
         browser = getattr(playwright, browser_name).launch(**launch_options)
         return browser
 
@@ -134,7 +133,7 @@ def _handle_page_goto(
     page: Page, args: List[Any], kwargs: Dict[str, Any], base_url: str
 ) -> None:
     url = args.pop()
-    if not (url.startswith("http://") or url.startswith("https://")):
+    if not url.startswith(("http://", "https://")):
         url = base_url + url
     return page._goto(url, *args, **kwargs)  # type: ignore
 
@@ -184,3 +183,4 @@ def pytest_addoption(parser: Any) -> None:
         default=False,
         help="Run tests in headful mode.",
     )
+    parser.addoption("--slowmo", default=0, type=int, help="Run tests in slow mo")

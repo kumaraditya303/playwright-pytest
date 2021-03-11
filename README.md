@@ -114,6 +114,14 @@ Start Pytest with the `base-url` argument.
 pytest --base-url http://localhost:8080
 ```
 
+### Configure slow mo
+
+Run tests with slow mo with the `--slowmo` argument in seconds.
+
+```bash
+pytest --slowmo 1
+```
+
 ```py
 def test_visit_example(page):
     page.goto("/admin")
